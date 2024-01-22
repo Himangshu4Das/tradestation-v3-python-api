@@ -25,7 +25,7 @@ REDIRECT_URI = 'http://localhost:3000/'
 url = ('https://signin.tradestation.com/authorize?response_type=code&client_id={'
        '}&audience=https://api.tradestation.com&redirect_uri={}&scope={}').format(AUTH0_CLIENT_ID, REDIRECT_URI,
                                                                                   AUTH0_SCOPE)
-print(url)
+print("URL for authorization: "+url)
 
 # Open the authorization URL in Chrome
 webbrowser.open_new(url)
@@ -33,6 +33,7 @@ webbrowser.open_new(url)
 # Start the HTTP server to listen for the callback
 class CallbackHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
+        print("Response Handeler")
         print(self.path)
         code = self.path.split('=')[-1]
         # Save the authorization code to a text file
@@ -41,11 +42,22 @@ class CallbackHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        self.wfile.write(bytes('<html><body>Authorization code saved to file.</body></html>', 'utf-8'))
-        self.server.shutdown()
+        self.wfile.write(bytes('<html><body>Authorization code saved to file. This window can be closed.</body></html>', 'utf-8'))
+        self.server.server_close()
+        print("Authorization code aquired. Server connection closed")
 
 
-with socketserver.TCPServer(("", 3000), CallbackHandler) as httpd:
-    httpd.serve_forever()
-
+print("try socket server")
+try:
+    with socketserver.TCPServer(("", 3000), CallbackHandler) as httpd: 
+        httpd.serve_forever()
+except Exception as e:
+    print("failed to run local server for authorization code: ")
+    print(e)
+    try:
+        httpd.server_close()#  provents error in which a server from a last attempt is still running
+        print("port closed")
+    except:
+        print("Could not shut down web server. If it remains open there is likely to be errors when the script is run.")
+    exit()
 print("Authorization code saved to file.")
